@@ -1,16 +1,23 @@
-# code for working with CFGs
-from collections import defaultdict, namedtuple
+from typing import Mapping, Sequence
 import random
 import funcy as fn
 
+CFG = Mapping[str, Sequence[str]]
 
-def sample(cfg, n, fromVariable=None):
-    """Uniformly sample from derivation trees of strings of length n."""
-    variables = set(cfg.productions.keys())
-    terminals = set.union(*(set(rhs) for rhs in cfg.productions.values())) - variables
+def sample(cfg: CFG, start: str, n: int) -> str:
+    """Uniformly sample from derivation trees of strings of length n.
+
+    - cfg : Mapping from non-terminal to possible expansions, e.g., A ::= AA | b.
+            Also known as the production rules.
+    - start : First rule to apply.
+    - n : Length of sample producted.
+    """
+    variables = set(cfg.keys())
+    terminals = set.union(*(set(rhs) for rhs in cfg.values())) - variables
+
     @fn.memoize
     def f(variable, n):
-        return [sum(fPrime(word, 1, n)) for word in cfg.productions[variable]]
+        return [sum(fPrime(word, 1, n)) for word in cfg[variable]]
 
     def chooseIndex(l):
         total = sum(l)
@@ -28,7 +35,7 @@ def sample(cfg, n, fromVariable=None):
         index = chooseIndex(f(variable, n))
         if index is None:
             return None
-        return gPrime(cfg.productions[variable][index], 1, n)
+        return gPrime(cfg[variable][index], 1, n)
 
     @fn.memoize
     def fPrime(word, k, n):
@@ -60,22 +67,18 @@ def sample(cfg, n, fromVariable=None):
             prefix = g(symbol, l)
         return prefix + ([] if k == t else gPrime(word, k+1, n-l))
 
-    if fromVariable is None:
-        fromVariable = cfg.init
-    return g(fromVariable, n)
+    return ''.join(g(start, n))
 
-CFG = namedtuple("CFG", ["productions", "init"])
 
 def main():
-    cfg = CFG(productions={
+    cfg = {
         'P': ('PP', 'AR'),
         'A': ('LP', '('),
         'L': ('(',),
         'R': (')',),        
-    }, init='P')
-    print(cfg)
-    print("".join(sample(cfg, 20)))    # sample a word of length 10
-
+    }
+    # sample a word of length n=20
+    print(sample(cfg, n=20, start='P'))
 
 
 if __name__ == '__main__':
