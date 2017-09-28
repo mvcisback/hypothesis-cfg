@@ -18,4 +18,7 @@ def test_foo(foo):
     assert len(foo) <= 20
 ```
 
+Currently no guarantees on the distribution.
+TODO: cite relevant works.
+
 [Hypothesis]: http://hypothesis.works/
