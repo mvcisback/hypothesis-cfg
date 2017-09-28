@@ -1,6 +1,8 @@
-from typing import Mapping, Sequence, Hashable
-import random
 import funcy as fn
+import random
+
+from typing import Mapping, Sequence, Hashable
+
 from hypothesis.searchstrategy.strategies import SearchStrategy
 from hypothesis.strategies import integers
 
