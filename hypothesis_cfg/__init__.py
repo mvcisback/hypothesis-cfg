@@ -1,6 +1,4 @@
 import funcy as fn
-import random
-
 from typing import Mapping, Sequence, Hashable
 
 from hypothesis.searchstrategy.strategies import SearchStrategy
