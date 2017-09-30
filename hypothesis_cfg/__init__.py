@@ -1,27 +1,51 @@
 import funcy as fn
 from typing import Mapping, Sequence, Hashable
 
+# TODO: this is a fairly heavyweight dependency
+from numpy.random import choice
+import numpy as np
+
 from hypothesis.searchstrategy.strategies import SearchStrategy
 from hypothesis.strategies import integers
 
 CFG = Mapping[Hashable, Sequence[Hashable]]
 
 class ContextFreeGrammarStrategy(SearchStrategy):
-    def __init__(self, cfg: CFG, start: Hashable, length: int):
+    def __init__(self, cfg: CFG, start: Hashable, max_length: int):
         super(ContextFreeGrammarStrategy, self).__init__()
         self.cfg = cfg
         self.start = start
-        self.n = length
+        self.n = max_length
         self.terminals = set.union(*(
             set.union(*map(set, rhs)) for rhs in cfg.values())) - set(cfg.keys())
 
+    def count(self, n):
+        return sum(self.f(self.start, n))
+
+    @fn.memoize
+    def f(self, variable, n):
+        return [sum(self.fPrime(word, 1, n)) for word in self.cfg[variable]]
+
+    @fn.memoize
+    def fPrime(self, word, k, n):
+        if n == 0:
+            return []
+
+        t, symbol = len(word), word[k-1]
+        if symbol in self.terminals:
+            if k == t:
+                result = ([1] if n == 1 else [0])
+            else:
+                result = [sum(self.fPrime(word, k+1, n-1))]
+        else:
+            if k == t:
+                result = [sum(self.f(symbol, n))]
+            else:
+                result = [sum(self.f(symbol, l)) * sum(
+                    self.fPrime(word, k+1, n-l)) for l in range(1, n-t+k+1)]
+        return result
 
     def do_draw(self, data):
-        cfg, n = self.cfg, self.n
-        @fn.memoize
-        def f(variable, n):
-            return [sum(fPrime(word, 1, n)) for word in self.cfg[variable]]
-
         def chooseIndex(l):
             total = sum(l)
             if total <= 0:
@@ -36,28 +60,11 @@ class ContextFreeGrammarStrategy(SearchStrategy):
             return None
 
         def g(variable, n):
-            index = chooseIndex(f(variable, n))
+            index = chooseIndex(self.f(variable, n))
             if index is None:
                 return None
             return gPrime(self.cfg[variable][index], 1, n)
 
-        @fn.memoize
-        def fPrime(word, k, n):
-            if n == 0:
-                return []
-
-            t, symbol = len(word), word[k-1]
-            if symbol in self.terminals:
-                if k == t:
-                    result = ([1] if n == 1 else [0])
-                else:
-                    result = [sum(fPrime(word, k+1, n-1))]
-            else:
-                if k == t:
-                    result = [sum(f(symbol, n))]
-                else:
-                    result = [sum(f(symbol, l)) * sum(fPrime(word, k+1, n-l)) for l in range(1, n-t+k+1)]
-            return result
 
         def gPrime(word, k, n):
             t, symbol = len(word), word[k-1]
@@ -70,11 +77,10 @@ class ContextFreeGrammarStrategy(SearchStrategy):
                 if k == t:
                     return g(symbol, n)
                 else:
-                    l = chooseIndex(fPrime(word, k, n)) + 1
+                    l = chooseIndex(self.fPrime(word, k, n)) + 1
                     return g(symbol, l) + gPrime(word, k+1, n-l)
 
-        # Check the initial production is the Grammar
-        for i in reversed(range(n)):
-            result = g(self.start, i)
-            if result is not None:
-                return result
+        # Pick length of element weighted by #elements per length
+        counts = np.array([self.count(i) for i in range(self.n) ])
+        n = choice(np.arange(self.n), p=counts / sum(counts))
+        return g(self.start, n)
