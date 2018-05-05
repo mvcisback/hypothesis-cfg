@@ -1,10 +1,6 @@
 import funcy as fn
 from typing import Mapping, Sequence, Hashable
 
-# TODO: this is a fairly heavyweight dependency
-from numpy.random import choice
-import numpy as np
-
 from hypothesis.searchstrategy.strategies import SearchStrategy
 from hypothesis.strategies import integers
 
@@ -65,7 +61,6 @@ class ContextFreeGrammarStrategy(SearchStrategy):
                 return None
             return gPrime(self.cfg[variable][index], 1, n)
 
-
         def gPrime(word, k, n):
             t, symbol = len(word), word[k-1]
             if symbol in self.terminals:
@@ -81,6 +76,5 @@ class ContextFreeGrammarStrategy(SearchStrategy):
                     return g(symbol, l) + gPrime(word, k+1, n-l)
 
         # Pick length of element weighted by #elements per length
-        counts = np.array([self.count(i) for i in range(self.n) ])
-        n = choice(np.arange(self.n), p=counts / sum(counts))
-        return g(self.start, n)
+        l = chooseIndex([self.count(i) for i in range(self.n + 1)])
+        return g(self.start, l)
