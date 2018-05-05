@@ -3,7 +3,7 @@ Context Free Grammars.
 
 ```python
 from hypothesis import given
-from hypothesis-cfg import ContextFreeGrammarStrategy
+from hypothesis_cfg import ContextFreeGrammarStrategy
 
 # Production rules
 GRAMMAR = {
@@ -13,7 +13,7 @@ GRAMMAR = {
     'R': ((')',),),
 }
 
-@given(ContextFreeGrammarStrategy(GRAMMAR, length=20, start='P'))
+@given(ContextFreeGrammarStrategy(GRAMMAR, max_length=20, start='P'))
 def test_foo(foo):
     assert len(foo) <= 20
 ```
