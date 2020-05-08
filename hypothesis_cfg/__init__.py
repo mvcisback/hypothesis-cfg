@@ -1,7 +1,7 @@
 import funcy as fn
 from typing import Mapping, Sequence, Hashable
 
-from hypothesis.searchstrategy.strategies import SearchStrategy
+from hypothesis.strategies import SearchStrategy
 from hypothesis.strategies import integers
 
 CFG = Mapping[Hashable, Sequence[Hashable]]
